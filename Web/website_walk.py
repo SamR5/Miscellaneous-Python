@@ -4,10 +4,10 @@
 # an os.walk like program for websites
 # it find all urls from www.domain.com
 
-
+import os
 import urllib.request
 import re
-import time as t
+import pickle as pk
 
 
 linkExp = r'"http(.*?)"'
@@ -26,25 +26,37 @@ def get_links(url):
     links = re.findall(linkExp2, str(response.read()))
     urls = set()
     for s in links:
-        while s[0] in illegal:
-            s = s[1:]
+        try:
+            while s[0] in illegal:
+                s = s[1:]
+        except IndexError:
+            continue
         if '?' in s:
             s = s[:s.index('?')]
         if s.startswith('http'):
             urls.add(s)
-        elif s.endswith(('.html', '.php', '.htm', '.xml')): # won't starts with 'http'
+        elif s.endswith(('.html', '.php', '.htm', '.xml')):
             urls.add(website + s) # sometimes there is just the path
-
     return urls
 
-def main():
-    visited = set()
-    toVisit = set()
-    toVisitNext = set()
-    # only keeps urls in the website
-    toVisit = set(filter(lambda x: website in x, get_links(website)))
+def infgen():
+    while 1:
+        yield True
 
-    while len(toVisit) != 0: #len(visited) < 100:
+def main():
+    global visited, toVisit
+    try:
+        with open(name + ".tmp", "rb") as sv:
+            data = pk.load(sv)
+        visited = data["visited"]
+        toVisit = data["toVisit"]
+    except:
+        visited = set()
+        toVisit = set(filter(lambda x: website in x, get_links(website)))
+
+    toVisitNext = set()
+
+    while len(toVisit) != 0:
         for page in toVisit:
             if page in visited:
                 continue
@@ -53,10 +65,16 @@ def main():
             visited.add(page)
         toVisit = toVisitNext.copy()
         toVisitNext = set()
+        # save the results each visit to resume if crash or big website
+        with open(name + ".tmp", "wb") as sv:
+            pk.dump({"visited":visited, "toVisit":toVisit}, sv)
+        print(1)
 
-    with open(name + ".txt", "w") as file:
+    with open(name + ".txt", "w") as f:
         for url in sorted(visited):
-            file.write(url + "\n")
+            f.write(url + "\n")
+    os.remove(name + ".tmp")
 
 if __name__ == "__main__":
     main()
+        
