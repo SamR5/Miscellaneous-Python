@@ -39,10 +39,6 @@ def get_links(url):
             urls.add(website + s) # sometimes there is just the path
     return urls
 
-def infgen():
-    while 1:
-        yield True
-
 def main():
     global visited, toVisit
     try:
@@ -68,7 +64,6 @@ def main():
         # save the results each visit to resume if crash or big website
         with open(name + ".tmp", "wb") as sv:
             pk.dump({"visited":visited, "toVisit":toVisit}, sv)
-        print(1)
 
     with open(name + ".txt", "w") as f:
         for url in sorted(visited):
