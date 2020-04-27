@@ -10,11 +10,12 @@ import re
 import pickle as pk
 
 
-linkExp = r'"http(.*?)"'
-linkExp2 = r'"(.*?)"'
-website = "https://reactos.org"
-name = "reactos"
+linkExp = r'href="(.+?)"'
+website = "https://www.programiz.com/"
+websiteShort = "programiz.com"
+name = "programiz"
 illegal = """ \\<>{}"'"""
+notWanted = [".js", ".css", ".jpg", ".svg", ".png", ".ico"]
 
 def get_links(url):
     """Return a list of all urls present in the webpage"""
@@ -23,7 +24,7 @@ def get_links(url):
     except:
         return []
     # find all things between quotes
-    links = re.findall(linkExp2, str(response.read()))
+    links = re.findall(linkExp, str(response.read()))
     urls = set()
     for s in links:
         try:
@@ -31,12 +32,17 @@ def get_links(url):
                 s = s[1:]
         except IndexError:
             continue
-        if '?' in s:
+        if s[0]=='#': continue
+        elif '#' in s:
+            s = s[:s.index('#')]
+        elif '?' in s:
             s = s[:s.index('?')]
-        if s.startswith('http'):
+        if any([s.endswith(i) for i in notWanted]):
+            continue
+        elif s[0] == '/' and websiteShort not in s:
+            urls.add(website + s[1:])
+        elif s.startswith("http") or s.startswith('www'):
             urls.add(s)
-        elif s.endswith(('.html', '.php', '.htm', '.xml')):
-            urls.add(website + s) # sometimes there is just the path
     return urls
 
 def main():
@@ -68,7 +74,10 @@ def main():
     with open(name + ".txt", "w") as f:
         for url in sorted(visited):
             f.write(url + "\n")
-    os.remove(name + ".tmp")
+    try: # in case no links has been found, no .tmp file written
+        os.remove(name + ".tmp")
+    except FileNotFoundError:
+        pass
 
 if __name__ == "__main__":
     main()
